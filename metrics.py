@@ -32,31 +32,31 @@ class Precision(BaseMetric):
     name= 'precision'
 
     def __init__(self, *args, **kwargs):
-        super(Accuracy, self).__init__(*args, **kwargs)
+        super(Precision, self).__init__(*args, **kwargs)
 
     def __call__(self, pred, target):
         tp, fn, fp, tn = classification_measurements(pred, target)
-        return tp / (tp + fp)
+        return tp / (tp + fp + self.eps)
 
 class Recall(BaseMetric):
     name= 'recall'
 
     def __init__(self, *args, **kwargs):
-        super(Accuracy, self).__init__(*args, **kwargs)
+        super(Recall, self).__init__(*args, **kwargs)
 
     def __call__(self, pred, target):
         tp, fn, fp, tn = classification_measurements(pred, target)
-        return tp / (tp + fn)
+        return tp / (tp + fn + self.eps)
 
 class F1(BaseMetric):
     name= 'f1-score'
 
     def __init__(self, *args, **kwargs):
-        super(Accuracy, self).__init__(*args, **kwargs)
+        super(F1, self).__init__(*args, **kwargs)
 
     def __call__(self, pred, target):
         tp, fn, fp, tn = classification_measurements(pred, target)
-        return 2 * tp / (2 * tp + fn + fp)
+        return 2 * tp / (2 * tp + fn + fp + self.eps)
 
 def classification_measurements(pred, target):
     pred = pred.detach().cpu().max(-1)[1].view(-1).numpy()
