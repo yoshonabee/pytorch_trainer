@@ -67,11 +67,6 @@ class Trainer(object):
             self.model.train()
             train_loss, train_scores = self._run_one_epoch(epoch)
 
-            self.writer.add_scalar("avg_loss", train_loss, epoch)
-
-            for name, score in train_scores.items():
-                self.writer.add_scalar(name, score, epoch)
-
             # Save model if (epoch + 1) % checkpoint == 0
             if self.checkpoint != 0:
                 if (epoch + 1) % self.checkpoint == 0:
@@ -96,6 +91,7 @@ class Trainer(object):
     def _run_one_epoch(self, epoch, valid=False):
         total_loss = 0
         total_scores = defaultdict(int)
+        total_count = 0
         dataloader = self.train_dataloader if not valid else self.valid_dataloader
 
         with tqdm(enumerate(dataloader), total=math.ceil(len(dataloader.dataset) / dataloader.batch_size), unit="iter") as t:
@@ -104,12 +100,25 @@ class Trainer(object):
 
                 loss, pred, y = self._loss_fn(self.model, data)
 
+                total_count += y.size(0)
+
                 for metric in self.metrics:
                     score = metric(pred, y)
-                    total_scores[metric.name] += score
+                    total_scores[metric.name] += score * y.size(0)
+
+                    if not valid:
+                        avg_score = total_scores[metric.name] / total_count
+                        self.writer.add_scalar(metric.name, score, self.steps)
+                        self.writer.add_scalar(f"avg_{metric.name}", avg_score, self.steps)
+
+                total_loss += loss.item() * y.size(0)
+                avg_loss = total_loss / total_count
+
+                t.set_postfix(steps=self.steps, avg_loss=avg_loss, loss=loss.item())
 
                 if not valid:
                     self.writer.add_scalar("loss", loss.item(), self.steps)
+                    self.writer.add_scalar("avg_loss", avg_loss, self.steps)
 
                     self.optimizer.zero_grad()
                     loss.backward()
@@ -117,13 +126,8 @@ class Trainer(object):
 
                     self.steps += 1
 
-                total_loss += loss.item()
-                avg_loss = total_loss / (i + 1)
-
-                t.set_postfix(steps=self.steps, avg_loss=avg_loss, loss=loss.item())
-        
         avg_scores = {
-            name: score / i
+            name: score / total_count
             for name, score in total_scores.items()
         }
 
