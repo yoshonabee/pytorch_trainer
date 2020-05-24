@@ -24,7 +24,7 @@ class DefaultCriterion(nn.Module):
         y = y.to(self.device)
 
         pred = model(x)
-        loss = self.criterion(pred, y)
+        loss = self.criterion(pred.view(-1, pred.size(-1)), y.view(-1))
 
         return loss, pred, y
 
