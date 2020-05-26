@@ -59,23 +59,15 @@ class F1(BaseMetric):
         return 2 * tp / (2 * tp + fn + fp + self.eps)
 
 def classification_measurements(pred, target):
-    pred = pred.detach().cpu().max(-1)[1].view(-1).numpy()
-    target = target.detach().cpu().view(-1).numpy()
 
-    tp, fn, fp, tn = 0, 0, 0, 0
+    pred = pred.max(-1)[1].view(-1)
+    target = target.view(-1)
 
-    for p, t in zip(pred, target):
-        if t:
-            if p:
-                tp += 1
-            else:
-                fn += 1
-        else:
-            if p:
-                fp += 1
-            else:
-                tn += 1
-    
+    tp = ((pred == 1) & (target == 1)).sum()
+    tn = ((pred == 0) & (target == 0)).sum()
+    fn = ((pred == 0) & (target == 1)).sum()
+    fp = ((pred == 1) & (target == 0)).sum()
+
     return tp, fn, fp, tn
 
 
