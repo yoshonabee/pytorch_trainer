@@ -6,17 +6,19 @@ class DefaultCriterion(nn.Module):
         "mse": nn.MSELoss,
         "l1": nn.L1Loss,
         "mae": nn.L1Loss,
-        "crossentropy": nn.CrossEntropyLoss
+        "crossentropy": nn.CrossEntropyLoss,
+        'bceloss': nn.BCELoss
     }
 
-    def __init__(self, criterion):
+    def __init__(self, criterion, device=None):
         super(DefaultCriterion, self).__init__()
         if criterion is not None:
             self.criterion = self.CRITERIONS[criterion.lower()]()
         else:
             self.criterion = None
 
-        self.device = torch.device("cpu")
+        self.device = torch.device("cpu") if not device else device
+        self.to(self.device)
 
     def forward(self, model, data):
         x, y = data
@@ -24,7 +26,7 @@ class DefaultCriterion(nn.Module):
         y = y.to(self.device)
 
         pred = model(x)
-        loss = self.criterion(pred.view(-1, pred.size(-1)), y.view(-1))
+        loss = self.criterion(pred, y)
 
         return loss, pred, y
 
